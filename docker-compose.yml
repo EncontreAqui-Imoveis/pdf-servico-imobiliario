@@ -1,0 +1,10 @@
+services:
+  pdf-service:
+    build:
+      context: ..
+      dockerfile: pdf-service/Dockerfile
+    environment:
+      PORT: "8080"
+      JWT_SECRET: "dev_secret_123"
+    ports:
+      - "8080:8080"
