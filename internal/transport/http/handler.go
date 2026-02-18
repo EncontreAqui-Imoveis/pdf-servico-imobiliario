@@ -38,5 +38,6 @@ func (h *Handler) GenerateProposal(c *gin.Context) {
 		return
 	}
 
+	c.Header("Content-Disposition", `attachment; filename="proposta_compra_imovel.pdf"`)
 	c.Data(http.StatusOK, "application/pdf", pdfBytes)
 }
