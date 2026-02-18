@@ -86,6 +86,7 @@ type ProposalRequest struct {
 	ClientCPFLegacy       string  `json:"client_cpf"`
 	PropertyAddressLegacy string  `json:"property_address"`
 	BrokerNameLegacy      string  `json:"broker_name"`
+	SellingBrokerLegacy   string  `json:"selling_broker_name"`
 	TotalValueLegacy      float64 `json:"value"`
 	PaymentMethodLegacy   string  `json:"payment_method"`
 	ValidityDaysLegacy    int     `json:"validity_days"`
@@ -94,6 +95,7 @@ type ProposalRequest struct {
 	ClientCPF       string           `json:"clientCpf"`
 	PropertyAddress FlexibleAddress  `json:"propertyAddress"`
 	BrokerName      string           `json:"brokerName"`
+	SellingBroker   string           `json:"sellingBrokerName"`
 	TotalValue      float64          `json:"totalValue"`
 	Payment         PaymentBreakdown `json:"payment"`
 	ValidityDays    int              `json:"validadeDias"`
@@ -141,6 +143,10 @@ func (p *ProposalRequest) ResolvedClientCPF() string {
 
 func (p *ProposalRequest) ResolvedBrokerName() string {
 	return firstNonBlank(p.BrokerName, p.BrokerNameLegacy)
+}
+
+func (p *ProposalRequest) ResolvedSellingBrokerName() string {
+	return firstNonBlank(p.SellingBroker, p.SellingBrokerLegacy, p.ResolvedBrokerName())
 }
 
 func (p *ProposalRequest) ResolvedValidityDays() int {
