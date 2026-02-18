@@ -65,6 +65,7 @@ func (a *FlexibleAddress) UnmarshalJSON(data []byte) error {
 type PaymentBreakdown struct {
 	Cash          float64 `json:"cash"`
 	TradeIn       float64 `json:"tradeIn"`
+	TradeInSnake  float64 `json:"trade_in"`
 	Financing     float64 `json:"financing"`
 	Others        float64 `json:"others"`
 	Dinheiro      float64 `json:"dinheiro"`
@@ -201,7 +202,7 @@ func (p *ProposalRequest) ResolvedState() string {
 func (p *ProposalRequest) ResolvedPayments() PaymentValues {
 	values := PaymentValues{
 		Cash:      firstPositive(p.Payment.Cash, p.Payment.Dinheiro),
-		TradeIn:   firstPositive(p.Payment.TradeIn, p.Payment.Permuta),
+		TradeIn:   firstPositive(p.Payment.TradeIn, p.Payment.TradeInSnake, p.Payment.Permuta),
 		Financing: firstPositive(p.Payment.Financing, p.Payment.Financiamento),
 		Others:    firstPositive(p.Payment.Others, p.Payment.Outros),
 	}
