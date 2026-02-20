@@ -62,7 +62,6 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	pdf.MultiCell(0, 7, tr(intro), "", "J", false)
 	pdf.Ln(2)
 
-	// Financial breakdown
 	lines := []string{
 		fmt.Sprintf("• Valor total da proposta: %s", formatBRL(totalValue)),
 		fmt.Sprintf("• Valor em dinheiro (Sinal/Entrada): %s", formatBRL(payment.Cash)),
@@ -85,7 +84,6 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	pdf.SetFont("Arial", "", 12)
 	pdf.MultiCell(0, 7, tr(fmt.Sprintf("Esta proposta é válida por %d dias.", validityDays)), "", "L", false)
 
-	// Signatures
 	currentY := pdf.GetY()
 	if currentY > 240 {
 		pdf.AddPage()
