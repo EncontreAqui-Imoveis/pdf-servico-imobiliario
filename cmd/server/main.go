@@ -2,7 +2,10 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -11,6 +14,11 @@ import (
 )
 
 func main() {
+	internalAPIKey := os.Getenv("INTERNAL_API_KEY")
+	if strings.TrimSpace(internalAPIKey) == "" {
+		log.Fatal("INTERNAL_API_KEY must be configured")
+	}
+
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
 	router.Use(httptransport.AuthMiddleware())
@@ -25,7 +33,17 @@ func main() {
 		port = "8080"
 	}
 
-	if err := router.Run(":" + port); err != nil {
+	server := &http.Server{
+		Addr:              ":" + port,
+		Handler:           router,
+		ReadTimeout:       5 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       15 * time.Second,
+		MaxHeaderBytes:    1 << 20, // 1 MB
+	}
+
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("failed to start server: %v", err)
 	}
 }

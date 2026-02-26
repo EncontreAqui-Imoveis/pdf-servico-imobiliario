@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 type FlexibleAddress struct {
@@ -104,7 +105,44 @@ type ProposalRequest struct {
 	PropertyState string `json:"propertyState"`
 }
 
+const (
+	maxClientNameLength      = 100
+	maxClientCPFLength       = 20
+	maxPropertyAddressLength = 255
+	maxBrokerNameLength      = 100
+	maxCityLength            = 100
+	maxStateLength           = 10
+	maxPaymentMethodLength   = 500
+)
+
 func (p *ProposalRequest) Validate() error {
+	p.Sanitize()
+
+	if err := validateMaxLength("client_name", p.ResolvedClientName(), maxClientNameLength); err != nil {
+		return err
+	}
+	if err := validateMaxLength("client_cpf", p.ResolvedClientCPF(), maxClientCPFLength); err != nil {
+		return err
+	}
+	if err := validateMaxLength("property_address", p.ResolvedPropertyAddress(), maxPropertyAddressLength); err != nil {
+		return err
+	}
+	if err := validateMaxLength("broker_name", p.ResolvedBrokerName(), maxBrokerNameLength); err != nil {
+		return err
+	}
+	if err := validateMaxLength("selling_broker_name", p.ResolvedSellingBrokerName(), maxBrokerNameLength); err != nil {
+		return err
+	}
+	if err := validateMaxLength("property_city", p.ResolvedCity(), maxCityLength); err != nil {
+		return err
+	}
+	if err := validateMaxLength("property_state", p.ResolvedState(), maxStateLength); err != nil {
+		return err
+	}
+	if err := validateMaxLength("payment_method", p.PaymentMethodLegacy, maxPaymentMethodLength); err != nil {
+		return err
+	}
+
 	if strings.TrimSpace(p.ResolvedClientName()) == "" {
 		return errors.New("client_name is required")
 	}
@@ -131,6 +169,34 @@ func (p *ProposalRequest) Validate() error {
 	}
 
 	return nil
+}
+
+func (p *ProposalRequest) Sanitize() {
+	p.ClientNameLegacy = sanitizeText(p.ClientNameLegacy)
+	p.ClientCPFLegacy = sanitizeText(p.ClientCPFLegacy)
+	p.PropertyAddressLegacy = sanitizeText(p.PropertyAddressLegacy)
+	p.BrokerNameLegacy = sanitizeText(p.BrokerNameLegacy)
+	p.SellingBrokerLegacy = sanitizeText(p.SellingBrokerLegacy)
+	p.PaymentMethodLegacy = sanitizeText(p.PaymentMethodLegacy)
+
+	p.ClientName = sanitizeText(p.ClientName)
+	p.ClientCPF = sanitizeText(p.ClientCPF)
+	p.BrokerName = sanitizeText(p.BrokerName)
+	p.SellingBroker = sanitizeText(p.SellingBroker)
+
+	p.PropertyAddress.Sanitize()
+	p.PropertyCity = sanitizeText(p.PropertyCity)
+	p.PropertyState = strings.ToUpper(sanitizeText(p.PropertyState))
+}
+
+func (a *FlexibleAddress) Sanitize() {
+	a.Raw = sanitizeText(a.Raw)
+	a.Street = sanitizeText(a.Street)
+	a.Number = sanitizeText(a.Number)
+	a.Neighborhood = sanitizeText(a.Neighborhood)
+	a.City = sanitizeText(a.City)
+	a.State = strings.ToUpper(sanitizeText(a.State))
+	a.Complement = sanitizeText(a.Complement)
 }
 
 func (p *ProposalRequest) ResolvedClientName() string {
@@ -270,4 +336,50 @@ func extractLegacyPaymentValue(source string, label string) float64 {
 		return 0
 	}
 	return parsed
+}
+
+func validateMaxLength(field, value string, maxLength int) error {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+	if len([]rune(trimmed)) > maxLength {
+		return fmt.Errorf("%s exceeds max length of %d", field, maxLength)
+	}
+	return nil
+}
+
+func sanitizeText(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+
+	var builder strings.Builder
+	builder.Grow(len(trimmed))
+	for _, r := range trimmed {
+		if isUnsafeRune(r) {
+			continue
+		}
+		builder.WriteRune(r)
+	}
+
+	sanitized := strings.TrimSpace(builder.String())
+	if sanitized == "" {
+		return ""
+	}
+	return strings.Join(strings.Fields(sanitized), " ")
+}
+
+func isUnsafeRune(r rune) bool {
+	if unicode.IsControl(r) {
+		return true
+	}
+
+	switch r {
+	case '\u061C', '\u200E', '\u200F', '\u202A', '\u202B', '\u202C', '\u202D', '\u202E', '\u2066', '\u2067', '\u2068', '\u2069':
+		return true
+	default:
+		return false
+	}
 }
