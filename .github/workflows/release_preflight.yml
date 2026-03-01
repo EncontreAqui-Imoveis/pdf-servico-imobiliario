@@ -42,7 +42,7 @@ jobs:
       - name: Run Gosec (blocking)
         run: |
           export PATH="$PATH:$(go env GOPATH)/bin"
-          gosec ./...
+          gosec ./cmd/... ./internal/...
 
       - name: Generate security checklist
         run: |

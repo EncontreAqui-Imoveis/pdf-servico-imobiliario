@@ -20,7 +20,9 @@ func main() {
 	}
 
 	router := gin.Default()
-	router.SetTrustedProxies(nil)
+	if err := router.SetTrustedProxies(nil); err != nil {
+		log.Fatalf("failed to configure trusted proxies: %v", err)
+	}
 	router.Use(httptransport.AuthMiddleware())
 
 	pdfService := service.NewPDFService()
