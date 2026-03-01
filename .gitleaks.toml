@@ -1,0 +1,8 @@
+title = "PDF Service Gitleaks Config"
+
+[allowlist]
+description = "Ignore dependency or generated directories that create noise"
+paths = [
+  '''(^|/)\.git/''',
+  '''(^|/)coverage/''',
+]
