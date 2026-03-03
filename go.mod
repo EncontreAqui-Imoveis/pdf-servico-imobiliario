@@ -4,7 +4,6 @@ go 1.26.0
 
 require (
 	github.com/gin-gonic/gin v1.9.1
-	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/jung-kurt/gofpdf v1.16.2
 )
 
