@@ -36,8 +36,15 @@ jobs:
       - name: Verify Go quality gates
         run: |
           go build ./...
-          go test ./...
+          go test -coverprofile=coverage.out ./...
           go vet ./...
+
+      - name: Enforce minimum Go coverage
+        shell: bash
+        run: |
+          TOTAL_COVERAGE=$(go tool cover -func=coverage.out | awk '/^total:/ {print $NF}' | tr -d '%')
+          echo "Total Go coverage: ${TOTAL_COVERAGE}%"
+          awk -v total="$TOTAL_COVERAGE" 'BEGIN { exit (total >= 45 ? 0 : 1) }'
 
       - name: Install Gosec
         run: go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4

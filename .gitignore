@@ -1,0 +1,6 @@
+coverage.out
+coverage/
+.gocache/
+.gomodcache/
+.gotmp/
+.gopath/
