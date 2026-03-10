@@ -4,19 +4,18 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"pdf-service/internal/config"
 	"pdf-service/internal/service"
 	httptransport "pdf-service/internal/transport/http"
 )
 
 func main() {
-	internalAPIKey := os.Getenv("INTERNAL_API_KEY")
-	if strings.TrimSpace(internalAPIKey) == "" {
-		log.Fatal("INTERNAL_API_KEY must be configured")
+	if config.InternalAPIKey() == "" {
+		log.Fatal("INTERNAL_API_KEY or PDF_INTERNAL_API_KEY must be configured")
 	}
 
 	router := gin.Default()

@@ -3,15 +3,16 @@ package httptransport
 import (
 	"crypto/subtle"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	"pdf-service/internal/config"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		expectedAPIKey := strings.TrimSpace(os.Getenv("INTERNAL_API_KEY"))
+		expectedAPIKey := config.InternalAPIKey()
 		if expectedAPIKey == "" {
 			c.AbortWithStatus(http.StatusServiceUnavailable)
 			return

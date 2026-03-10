@@ -10,6 +10,7 @@ import (
 
 func TestAuthMiddlewareRejectsWhenInternalAPIKeyIsNotConfigured(t *testing.T) {
 	t.Setenv("INTERNAL_API_KEY", "")
+	t.Setenv("PDF_INTERNAL_API_KEY", "")
 	gin.SetMode(gin.TestMode)
 
 	router := gin.New()
@@ -72,6 +73,28 @@ func TestAuthMiddlewareRejectsInvalidAPIKeyHeader(t *testing.T) {
 
 func TestAuthMiddlewareAllowsRequestWithValidAPIKey(t *testing.T) {
 	t.Setenv("INTERNAL_API_KEY", "super-secret-key")
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	router.Use(AuthMiddleware())
+	router.GET("/ping", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	req.Header.Set("X-Internal-API-Key", "super-secret-key")
+	res := httptest.NewRecorder()
+
+	router.ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, res.Code)
+	}
+}
+
+func TestAuthMiddlewareAllowsFallbackPDFInternalAPIKey(t *testing.T) {
+	t.Setenv("INTERNAL_API_KEY", "")
+	t.Setenv("PDF_INTERNAL_API_KEY", "super-secret-key")
 	gin.SetMode(gin.TestMode)
 
 	router := gin.New()
