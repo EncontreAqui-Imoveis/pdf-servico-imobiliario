@@ -16,9 +16,6 @@ import (
 //go:embed assets/branding/encontre_imagem.png
 var encontreLogoPNG []byte
 
-//go:embed assets/branding/imagem_hero.png
-var heroBackgroundPNG []byte
-
 type PDFService struct{}
 
 func NewPDFService() *PDFService {
@@ -46,15 +43,8 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	pdf.AddPage()
 	tr := pdf.UnicodeTranslatorFromDescriptor("")
 
-	pw, ph := pdf.GetPageSize()
 	logoOpts := gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: true}
 	_ = pdf.RegisterImageOptionsReader("ea_logo", logoOpts, bytes.NewReader(encontreLogoPNG))
-	heroOpts := gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: true}
-	_ = pdf.RegisterImageOptionsReader("ea_hero", heroOpts, bytes.NewReader(heroBackgroundPNG))
-
-	pdf.SetAlpha(0.1, "Normal")
-	pdf.Image("ea_hero", 0, 0, pw, ph, false, "", 0, "")
-	pdf.SetAlpha(1, "Normal")
 
 	// Header
 	pdf.SetFont("Arial", "B", 18)
