@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"math"
 	"strconv"
@@ -11,6 +12,12 @@ import (
 
 	"pdf-service/internal/domain"
 )
+
+//go:embed assets/branding/encontre_imagem.png
+var encontreLogoPNG []byte
+
+//go:embed assets/branding/imagem_hero.png
+var heroBackgroundPNG []byte
 
 type PDFService struct{}
 
@@ -38,6 +45,16 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	pdf.SetAutoPageBreak(true, 20)
 	pdf.AddPage()
 	tr := pdf.UnicodeTranslatorFromDescriptor("")
+
+	pw, ph := pdf.GetPageSize()
+	logoOpts := gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: true}
+	_ = pdf.RegisterImageOptionsReader("ea_logo", logoOpts, bytes.NewReader(encontreLogoPNG))
+	heroOpts := gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: true}
+	_ = pdf.RegisterImageOptionsReader("ea_hero", heroOpts, bytes.NewReader(heroBackgroundPNG))
+
+	pdf.SetAlpha(0.1, "Normal")
+	pdf.Image("ea_hero", 0, 0, pw, ph, false, "", 0, "")
+	pdf.SetAlpha(1, "Normal")
 
 	// Header
 	pdf.SetFont("Arial", "B", 18)
@@ -107,6 +124,28 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	pdf.CellFormat(lineWidth, 6, tr(fmt.Sprintf("%s (Proponente)", clientName)), "", 0, "C", false, 0, "")
 	pdf.SetXY(rightX, signatureY+2)
 	pdf.CellFormat(lineWidth, 6, tr(fmt.Sprintf("%s (Proprietário/Corretor)", brokerName)), "", 0, "C", false, 0, "")
+
+	lmF, _, rmF, bmF := pdf.GetMargins()
+	pwF, phF := pdf.GetPageSize()
+	footerMinY := phF - bmF - 36
+	if pdf.GetY() > footerMinY-8 {
+		pdf.AddPage()
+		lmF, _, rmF, bmF = pdf.GetMargins()
+		pwF, phF = pdf.GetPageSize()
+	}
+	contentWF := pwF - lmF - rmF
+	pdf.SetY(math.Max(pdf.GetY()+12, phF-bmF-32))
+
+	logoW := 32.0
+	logoX := lmF + (contentWF-logoW)/2
+	pdf.Image("ea_logo", logoX, pdf.GetY(), logoW, 0, false, "", 0, "")
+	pdf.Ln(16)
+
+	pdf.SetFont("Arial", "", 8)
+	footerLine1 := tr("Rua Abel Pereira de Castro, 838, Centro, Rio Verde – GO | CEP: 75.901-060")
+	footerLine2 := tr("64 3050-0118 | Instagram: @encontre.aquiimoveis")
+	pdf.MultiCell(0, 4, footerLine1, "", "C", false)
+	pdf.MultiCell(0, 4, footerLine2, "", "C", false)
 
 	var out bytes.Buffer
 	if err := pdf.Output(&out); err != nil {
