@@ -81,3 +81,19 @@ func TestGenerateProposalCompletesWithinNominalBudget(t *testing.T) {
 		t.Fatalf("expected PDF generation under 1500ms, got %s", elapsed)
 	}
 }
+
+func TestBuildProponentSignatureLabelUsesClientName(t *testing.T) {
+	got := buildProponentSignatureLabel("Joana Pereira")
+
+	if got != "Joana Pereira (Proponente)" {
+		t.Fatalf("expected proponent signature label to use client name, got %q", got)
+	}
+}
+
+func TestBuildInstitutionalSignatureLabelUsesInstitutionalParty(t *testing.T) {
+	got := buildInstitutionalSignatureLabel()
+
+	if got != "ENCONTREAQUI IMÓVEIS LTDA (Imobiliária)" {
+		t.Fatalf("expected institutional signature label, got %q", got)
+	}
+}

@@ -18,6 +18,11 @@ var encontreLogoPNG []byte
 
 type PDFService struct{}
 
+const (
+	institutionalPartyName = "ENCONTREAQUI IMÓVEIS LTDA"
+	institutionalPartyRole = "Imobiliária"
+)
+
 func NewPDFService() *PDFService {
 	return &PDFService{}
 }
@@ -32,10 +37,7 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	validityDays := req.ResolvedValidityDays()
 	totalValue := req.ResolvedTotalValue()
 	payment := req.ResolvedPayments()
-	brokerName := fallback(req.ResolvedBrokerName(), "Proprietário/Corretor")
-	sellingBrokerName := strings.ToUpper(
-		fallback(req.ResolvedSellingBrokerName(), "PROPRIETÁRIO DO IMÓVEL"),
-	)
+	institutionalDisplayName := strings.ToUpper(institutionalPartyName)
 
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(20, 20, 20)
@@ -55,7 +57,7 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	pdf.SetFont("Arial", "B", 13)
 	pdf.CellFormat(0, 7, tr("Ilmo(a) Sr(a).:"), "", 1, "L", false, 0, "")
 	pdf.SetFont("Arial", "BI", 13)
-	pdf.CellFormat(0, 7, tr(sellingBrokerName), "", 1, "L", false, 0, "")
+	pdf.CellFormat(0, 7, tr(institutionalDisplayName), "", 1, "L", false, 0, "")
 	pdf.Ln(12)
 
 	// Intro paragraph
@@ -111,9 +113,9 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 
 	pdf.SetFont("Arial", "", 11)
 	pdf.SetXY(leftX, signatureY+2)
-	pdf.CellFormat(lineWidth, 6, tr(fmt.Sprintf("%s (Proponente)", clientName)), "", 0, "C", false, 0, "")
+	pdf.CellFormat(lineWidth, 6, tr(buildProponentSignatureLabel(clientName)), "", 0, "C", false, 0, "")
 	pdf.SetXY(rightX, signatureY+2)
-	pdf.CellFormat(lineWidth, 6, tr(fmt.Sprintf("%s (Proprietário/Corretor)", brokerName)), "", 0, "C", false, 0, "")
+	pdf.CellFormat(lineWidth, 6, tr(buildInstitutionalSignatureLabel()), "", 0, "C", false, 0, "")
 
 	lmF, _, rmF, bmF := pdf.GetMargins()
 	pwF, phF := pdf.GetPageSize()
@@ -168,6 +170,14 @@ func formatBRL(value float64) string {
 	}
 
 	return fmt.Sprintf("R$ %s%s,%02d", sign, grouped.String(), decPart)
+}
+
+func buildProponentSignatureLabel(clientName string) string {
+	return fmt.Sprintf("%s (Proponente)", clientName)
+}
+
+func buildInstitutionalSignatureLabel() string {
+	return fmt.Sprintf("%s (%s)", institutionalPartyName, institutionalPartyRole)
 }
 
 func fallback(value, fallbackValue string) string {
