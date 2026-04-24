@@ -130,9 +130,6 @@ func (p *ProposalRequest) Validate() error {
 	if err := validateMaxLength("broker_name", p.ResolvedBrokerName(), maxBrokerNameLength); err != nil {
 		return err
 	}
-	if err := validateMaxLength("selling_broker_name", p.ResolvedSellingBrokerName(), maxBrokerNameLength); err != nil {
-		return err
-	}
 	if err := validateMaxLength("property_city", p.ResolvedCity(), maxCityLength); err != nil {
 		return err
 	}
@@ -176,14 +173,11 @@ func (p *ProposalRequest) Sanitize() {
 	p.ClientCPFLegacy = sanitizeText(p.ClientCPFLegacy)
 	p.PropertyAddressLegacy = sanitizeText(p.PropertyAddressLegacy)
 	p.BrokerNameLegacy = sanitizeText(p.BrokerNameLegacy)
-	p.SellingBrokerLegacy = sanitizeText(p.SellingBrokerLegacy)
 	p.PaymentMethodLegacy = sanitizeText(p.PaymentMethodLegacy)
 
 	p.ClientName = sanitizeText(p.ClientName)
 	p.ClientCPF = sanitizeText(p.ClientCPF)
 	p.BrokerName = sanitizeText(p.BrokerName)
-	p.SellingBroker = sanitizeText(p.SellingBroker)
-
 	p.PropertyAddress.Sanitize()
 	p.PropertyCity = sanitizeText(p.PropertyCity)
 	p.PropertyState = strings.ToUpper(sanitizeText(p.PropertyState))
@@ -212,7 +206,7 @@ func (p *ProposalRequest) ResolvedBrokerName() string {
 }
 
 func (p *ProposalRequest) ResolvedSellingBrokerName() string {
-	return firstNonBlank(p.SellingBroker, p.SellingBrokerLegacy, p.ResolvedBrokerName())
+	return p.ResolvedBrokerName()
 }
 
 func (p *ProposalRequest) ResolvedValidityDays() int {
