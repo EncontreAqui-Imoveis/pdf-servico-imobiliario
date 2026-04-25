@@ -10,7 +10,6 @@ func TestProposalRequestSanitizeRemovesUnsafeCharacters(t *testing.T) {
 		ClientName:          "  Ana \u202e Silva  ",
 		ClientCPF:           "123.456.789-00",
 		BrokerName:          " Pedro \u200f Souza ",
-		SellingBroker:       "  Maria  ",
 		PropertyCity:        " Goiânia ",
 		PropertyState:       " go ",
 		PaymentMethodLegacy: " Dinheiro: R$ 100,00 ",

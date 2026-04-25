@@ -15,7 +15,6 @@ func TestGenerateProposalReturnsPDFBytesForValidRequest(t *testing.T) {
 		ClientName:    "Ana Silva",
 		ClientCPF:     "123.456.789-00",
 		BrokerName:    "Pedro Souza",
-		SellingBroker: "Maria Souza",
 		PropertyAddress: domain.FlexibleAddress{
 			Street:       "Rua A",
 			Number:       "10",
@@ -52,7 +51,6 @@ func TestGenerateProposalCompletesWithinNominalBudget(t *testing.T) {
 		ClientName:    "Ana Silva",
 		ClientCPF:     "123.456.789-00",
 		BrokerName:    "Pedro Souza",
-		SellingBroker: "Maria Souza",
 		PropertyAddress: domain.FlexibleAddress{
 			Street:       "Rua A",
 			Number:       "10",
@@ -95,5 +93,40 @@ func TestBuildInstitutionalSignatureLabelUsesInstitutionalParty(t *testing.T) {
 
 	if got != "ENCONTREAQUI IMÓVEIS LTDA (Imobiliária)" {
 		t.Fatalf("expected institutional signature label, got %q", got)
+	}
+}
+
+// Regressão: captador/corretor não entra no corpo do PDF; legado "vendedor" não deve vazar no binário.
+func TestGenerateProposalDoesNotEmbedBrokerNameInPDFBytes(t *testing.T) {
+	svc := NewPDFService()
+	uniqueBroker := "BROKER_MUST_NOT_APPEAR_IN_PDF_77219"
+
+	req := domain.ProposalRequest{
+		ClientName:    "Comprador Proponente",
+		ClientCPF:     "123.456.789-00",
+		BrokerName:    uniqueBroker,
+		PropertyAddress: domain.FlexibleAddress{
+			Street:       "Rua A",
+			Number:       "10",
+			Neighborhood: "Centro",
+			City:         "Goiânia",
+			State:        "GO",
+		},
+		PropertyCity:  "Goiânia",
+		PropertyState: "GO",
+		TotalValue:    150000,
+		Payment: domain.PaymentBreakdown{
+			Cash:      50000,
+			Financing: 100000,
+		},
+		ValidityDays: 10,
+	}
+
+	pdfBytes, err := svc.GenerateProposal(req)
+	if err != nil {
+		t.Fatalf("expected valid PDF generation, got error: %v", err)
+	}
+	if bytes.Contains(pdfBytes, []byte(uniqueBroker)) {
+		t.Fatalf("PDF must not contain broker string %q (template must stay non-leaky for legacy vendedor/captador)", uniqueBroker)
 	}
 }
