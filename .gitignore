@@ -4,3 +4,4 @@ coverage/
 .gomodcache/
 .gotmp/
 .gopath/
+walkthrough.md

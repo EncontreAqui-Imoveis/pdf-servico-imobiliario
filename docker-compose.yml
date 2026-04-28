@@ -6,5 +6,8 @@ services:
     environment:
       PORT: "8080"
       INTERNAL_API_KEY: ${PDF_INTERNAL_API_KEY}
+      SENTRY_DSN: ${SENTRY_DSN}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     expose:
       - "8080"

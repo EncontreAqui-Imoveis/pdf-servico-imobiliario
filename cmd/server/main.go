@@ -4,8 +4,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/getsentry/sentry-go"
+	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 
 	"pdf-service/internal/config"
@@ -18,10 +21,33 @@ func main() {
 		log.Fatal("INTERNAL_API_KEY or PDF_INTERNAL_API_KEY must be configured")
 	}
 
+	// Initialize Sentry
+	sentryDsn := strings.TrimSpace(os.Getenv("SENTRY_DSN"))
+	if sentryDsn != "" {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn:              sentryDsn,
+			EnableTracing:    true,
+			TracesSampleRate: 1.0,
+			Environment:      os.Getenv("GO_ENV"),
+		})
+		if err != nil {
+			log.Printf("sentry.Init: %s", err)
+		} else {
+			log.Println("Sentry initialized")
+		}
+	}
+
 	router := gin.Default()
 	if err := router.SetTrustedProxies(nil); err != nil {
 		log.Fatalf("failed to configure trusted proxies: %v", err)
 	}
+
+	if sentryDsn != "" {
+		router.Use(sentrygin.New(sentrygin.Options{
+			Repanic: true,
+		}))
+	}
+
 	router.Use(httptransport.AuthMiddleware())
 
 	pdfService := service.NewPDFService()
