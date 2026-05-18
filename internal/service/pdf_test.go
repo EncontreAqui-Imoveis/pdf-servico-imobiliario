@@ -138,3 +138,11 @@ func TestBuildFooterBrandLabelUsesSeparatedBrandName(t *testing.T) {
 		t.Fatalf("expected footer brand label to be separated, got %q", got)
 	}
 }
+
+func TestBuildInstitutionalAddresseeLabelUsesUppercaseBrand(t *testing.T) {
+	got := buildInstitutionalAddresseeLabel()
+
+	if got != "ENCONTRE AQUI IMÓVEIS LTDA" {
+		t.Fatalf("expected addressee label to be uppercase, got %q", got)
+	}
+}

@@ -56,7 +56,7 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	pdf.SetFont("Arial", "B", 13)
 	pdf.CellFormat(0, 7, tr("ILMO(A). SR(A).:"), "", 1, "L", false, 0, "")
 	pdf.SetFont("Arial", "BI", 13)
-	pdf.CellFormat(0, 7, tr(institutionalPartyName), "", 1, "L", false, 0, "")
+	pdf.CellFormat(0, 7, tr(buildInstitutionalAddresseeLabel()), "", 1, "L", false, 0, "")
 	pdf.Ln(12)
 
 	// Intro paragraph
@@ -133,13 +133,14 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	pdf.Ln(4)
 
 	brandRowY := pdf.GetY()
-	logoW := 14.0
-	logoX := lmF + (contentWF-72)/2
-	pdf.Image("ea_logo", logoX, brandRowY, logoW, 0, false, "", 0, "")
-	pdf.SetXY(logoX+logoW+4, brandRowY+1)
+	logoW := 18.0
+	logoH := 18.0
+	logoX := lmF + (contentWF-logoW)/2
+	pdf.Image("ea_logo", logoX, brandRowY, logoW, logoH, false, "", 0, "")
+	pdf.SetY(brandRowY + logoH + 1)
 	pdf.SetFont("Arial", "B", 9)
-	pdf.CellFormat(58, 5, tr(buildFooterBrandLabel()), "", 0, "L", false, 0, "")
-	pdf.Ln(12)
+	pdf.CellFormat(0, 5, tr(buildFooterBrandLabel()), "", 1, "C", false, 0, "")
+	pdf.Ln(1)
 
 	pdf.SetFont("Arial", "", 8)
 	footerLine1 := tr("Rua Abel Pereira de Castro, 838, Centro, Rio Verde – GO | CEP: 75.901-060")
@@ -186,6 +187,10 @@ func buildProponentSignatureLabel(clientName string) string {
 
 func buildInstitutionalSignatureLabel() string {
 	return fmt.Sprintf("%s (%s)", institutionalPartyName, institutionalPartyRole)
+}
+
+func buildInstitutionalAddresseeLabel() string {
+	return strings.ToUpper(institutionalPartyName)
 }
 
 func buildFooterBrandLabel() string {
