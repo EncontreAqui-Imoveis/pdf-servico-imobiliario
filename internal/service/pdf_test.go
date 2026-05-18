@@ -12,9 +12,9 @@ func TestGenerateProposalReturnsPDFBytesForValidRequest(t *testing.T) {
 	svc := NewPDFService()
 
 	req := domain.ProposalRequest{
-		ClientName:    "Ana Silva",
-		ClientCPF:     "123.456.789-00",
-		BrokerName:    "Pedro Souza",
+		ClientName: "Ana Silva",
+		ClientCPF:  "123.456.789-00",
+		BrokerName: "Pedro Souza",
 		PropertyAddress: domain.FlexibleAddress{
 			Street:       "Rua A",
 			Number:       "10",
@@ -48,9 +48,9 @@ func TestGenerateProposalCompletesWithinNominalBudget(t *testing.T) {
 	svc := NewPDFService()
 
 	req := domain.ProposalRequest{
-		ClientName:    "Ana Silva",
-		ClientCPF:     "123.456.789-00",
-		BrokerName:    "Pedro Souza",
+		ClientName: "Ana Silva",
+		ClientCPF:  "123.456.789-00",
+		BrokerName: "Pedro Souza",
 		PropertyAddress: domain.FlexibleAddress{
 			Street:       "Rua A",
 			Number:       "10",
@@ -102,9 +102,9 @@ func TestGenerateProposalDoesNotEmbedBrokerNameInPDFBytes(t *testing.T) {
 	uniqueBroker := "BROKER_MUST_NOT_APPEAR_IN_PDF_77219"
 
 	req := domain.ProposalRequest{
-		ClientName:    "Comprador Proponente",
-		ClientCPF:     "123.456.789-00",
-		BrokerName:    uniqueBroker,
+		ClientName: "Comprador Proponente",
+		ClientCPF:  "123.456.789-00",
+		BrokerName: uniqueBroker,
 		PropertyAddress: domain.FlexibleAddress{
 			Street:       "Rua A",
 			Number:       "10",
@@ -128,5 +128,13 @@ func TestGenerateProposalDoesNotEmbedBrokerNameInPDFBytes(t *testing.T) {
 	}
 	if bytes.Contains(pdfBytes, []byte(uniqueBroker)) {
 		t.Fatalf("PDF must not contain broker string %q (template must stay non-leaky for legacy vendedor/captador)", uniqueBroker)
+	}
+}
+
+func TestBuildFooterBrandLabelUsesSeparatedBrandName(t *testing.T) {
+	got := buildFooterBrandLabel()
+
+	if got != "Encontre Aqui Imóveis" {
+		t.Fatalf("expected footer brand label to be separated, got %q", got)
 	}
 }

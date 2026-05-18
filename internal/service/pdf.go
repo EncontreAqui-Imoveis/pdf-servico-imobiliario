@@ -40,6 +40,7 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(20, 20, 20)
 	pdf.SetAutoPageBreak(true, 20)
+	pdf.SetCompression(false)
 	pdf.AddPage()
 	tr := pdf.UnicodeTranslatorFromDescriptor("")
 
@@ -117,19 +118,28 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 
 	lmF, _, rmF, bmF := pdf.GetMargins()
 	pwF, phF := pdf.GetPageSize()
-	footerMinY := phF - bmF - 36
+	footerMinY := phF - bmF - 44
 	if pdf.GetY() > footerMinY-8 {
 		pdf.AddPage()
 		lmF, _, rmF, bmF = pdf.GetMargins()
 		pwF, phF = pdf.GetPageSize()
 	}
 	contentWF := pwF - lmF - rmF
-	pdf.SetY(math.Max(pdf.GetY()+12, phF-bmF-32))
+	footerY := math.Max(pdf.GetY()+12, phF-bmF-38)
+	pdf.SetY(footerY)
 
-	logoW := 32.0
-	logoX := lmF + (contentWF-logoW)/2
-	pdf.Image("ea_logo", logoX, pdf.GetY(), logoW, 0, false, "", 0, "")
-	pdf.Ln(16)
+	pdf.SetDrawColor(220, 220, 220)
+	pdf.Line(lmF, pdf.GetY(), pwF-rmF, pdf.GetY())
+	pdf.Ln(4)
+
+	brandRowY := pdf.GetY()
+	logoW := 14.0
+	logoX := lmF + (contentWF-72)/2
+	pdf.Image("ea_logo", logoX, brandRowY, logoW, 0, false, "", 0, "")
+	pdf.SetXY(logoX+logoW+4, brandRowY+1)
+	pdf.SetFont("Arial", "B", 9)
+	pdf.CellFormat(58, 5, tr(buildFooterBrandLabel()), "", 0, "L", false, 0, "")
+	pdf.Ln(12)
 
 	pdf.SetFont("Arial", "", 8)
 	footerLine1 := tr("Rua Abel Pereira de Castro, 838, Centro, Rio Verde – GO | CEP: 75.901-060")
@@ -176,6 +186,10 @@ func buildProponentSignatureLabel(clientName string) string {
 
 func buildInstitutionalSignatureLabel() string {
 	return fmt.Sprintf("%s (%s)", institutionalPartyName, institutionalPartyRole)
+}
+
+func buildFooterBrandLabel() string {
+	return "Encontre Aqui Imóveis"
 }
 
 func fallback(value, fallbackValue string) string {
