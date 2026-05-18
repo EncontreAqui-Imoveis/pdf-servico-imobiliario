@@ -91,7 +91,7 @@ func TestBuildProponentSignatureLabelUsesClientName(t *testing.T) {
 func TestBuildInstitutionalSignatureLabelUsesInstitutionalParty(t *testing.T) {
 	got := buildInstitutionalSignatureLabel()
 
-	if got != "ENCONTREAQUI IMÓVEIS LTDA (Imobiliária)" {
+	if got != "Encontre Aqui Imóveis Ltda (Imobiliária)" {
 		t.Fatalf("expected institutional signature label, got %q", got)
 	}
 }

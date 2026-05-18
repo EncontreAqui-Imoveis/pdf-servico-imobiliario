@@ -19,7 +19,7 @@ var encontreLogoPNG []byte
 type PDFService struct{}
 
 const (
-	institutionalPartyName = "ENCONTREAQUI IMÓVEIS LTDA"
+	institutionalPartyName = "Encontre Aqui Imóveis Ltda"
 	institutionalPartyRole = "Imobiliária"
 )
 
@@ -37,8 +37,6 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	validityDays := req.ResolvedValidityDays()
 	totalValue := req.ResolvedTotalValue()
 	payment := req.ResolvedPayments()
-	institutionalDisplayName := strings.ToUpper(institutionalPartyName)
-
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(20, 20, 20)
 	pdf.SetAutoPageBreak(true, 20)
@@ -55,9 +53,9 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 
 	// Addressee
 	pdf.SetFont("Arial", "B", 13)
-	pdf.CellFormat(0, 7, tr("Ilmo(a) Sr(a).:"), "", 1, "L", false, 0, "")
+	pdf.CellFormat(0, 7, tr("ILMO(A). SR(A).:"), "", 1, "L", false, 0, "")
 	pdf.SetFont("Arial", "BI", 13)
-	pdf.CellFormat(0, 7, tr(institutionalDisplayName), "", 1, "L", false, 0, "")
+	pdf.CellFormat(0, 7, tr(institutionalPartyName), "", 1, "L", false, 0, "")
 	pdf.Ln(12)
 
 	// Intro paragraph
