@@ -87,6 +87,7 @@ type ProposalRequest struct {
 	ClientCPFLegacy       string  `json:"client_cpf"`
 	PropertyAddressLegacy string  `json:"property_address"`
 	BrokerNameLegacy      string  `json:"broker_name"`
+	DealTypeLegacy        string  `json:"deal_type"`
 	TotalValueLegacy      float64 `json:"value"`
 	PaymentMethodLegacy   string  `json:"payment_method"`
 	ValidityDaysLegacy    int     `json:"validity_days"`
@@ -95,6 +96,7 @@ type ProposalRequest struct {
 	ClientCPF       string           `json:"clientCpf"`
 	PropertyAddress FlexibleAddress  `json:"propertyAddress"`
 	BrokerName      string           `json:"brokerName"`
+	DealType        string           `json:"dealType"`
 	TotalValue      float64          `json:"totalValue"`
 	Payment         PaymentBreakdown `json:"payment"`
 	ValidityDays    int              `json:"validadeDias"`
@@ -179,6 +181,8 @@ func (p *ProposalRequest) Sanitize() {
 	p.PropertyAddress.Sanitize()
 	p.PropertyCity = sanitizeText(p.PropertyCity)
 	p.PropertyState = strings.ToUpper(sanitizeText(p.PropertyState))
+	p.DealTypeLegacy = sanitizeText(p.DealTypeLegacy)
+	p.DealType = sanitizeText(p.DealType)
 }
 
 func (a *FlexibleAddress) Sanitize() {
@@ -201,6 +205,18 @@ func (p *ProposalRequest) ResolvedClientCPF() string {
 
 func (p *ProposalRequest) ResolvedBrokerName() string {
 	return firstNonBlank(p.BrokerName, p.BrokerNameLegacy)
+}
+
+func (p *ProposalRequest) ResolvedDealType() string {
+	normalized := strings.ToLower(firstNonBlank(p.DealType, p.DealTypeLegacy))
+	switch {
+	case strings.Contains(normalized, "alug"), strings.Contains(normalized, "rent"):
+		return "rent"
+	case strings.Contains(normalized, "vend"), strings.Contains(normalized, "sale"):
+		return "sale"
+	default:
+		return "sale"
+	}
 }
 
 func (p *ProposalRequest) ResolvedValidityDays() int {

@@ -49,7 +49,7 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 
 	// Header
 	pdf.SetFont("Arial", "B", 18)
-	pdf.CellFormat(0, 10, tr("PROPOSTA DE COMPRA DE IMÓVEL"), "", 1, "C", false, 0, "")
+	pdf.CellFormat(0, 10, tr(buildProposalTitle(req)), "", 1, "C", false, 0, "")
 	pdf.Ln(8)
 
 	// Addressee
@@ -60,12 +60,7 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	pdf.Ln(12)
 
 	// Intro paragraph
-	intro := fmt.Sprintf(
-		"Esta proposta tem por finalidade assegurar uma oferta de compra de um imóvel de sua propriedade, situado à %s, na cidade de %s - %s, por parte do comprador, nas seguintes condições:",
-		address,
-		city,
-		state,
-	)
+	intro := buildIntroParagraph(req, address, city, state)
 	pdf.SetFont("Arial", "", 12)
 	pdf.MultiCell(0, 7, tr(intro), "", "J", false)
 	pdf.Ln(2)
@@ -195,6 +190,31 @@ func buildInstitutionalAddresseeLabel() string {
 
 func buildFooterBrandLabel() string {
 	return "Encontre Aqui Imóveis"
+}
+
+func buildProposalTitle(req domain.ProposalRequest) string {
+	if req.ResolvedDealType() == "rent" {
+		return "PROPOSTA DE LOCAÇÃO DE IMÓVEL"
+	}
+	return "PROPOSTA DE COMPRA DE IMÓVEL"
+}
+
+func buildIntroParagraph(req domain.ProposalRequest, address, city, state string) string {
+	if req.ResolvedDealType() == "rent" {
+		return fmt.Sprintf(
+			"Esta proposta tem por finalidade assegurar uma oferta de locação de um imóvel de sua propriedade, situado à %s, na cidade de %s - %s, por parte do locatário, nas seguintes condições:",
+			address,
+			city,
+			state,
+		)
+	}
+
+	return fmt.Sprintf(
+		"Esta proposta tem por finalidade assegurar uma oferta de compra de um imóvel de sua propriedade, situado à %s, na cidade de %s - %s, por parte do comprador, nas seguintes condições:",
+		address,
+		city,
+		state,
+	)
 }
 
 func fallback(value, fallbackValue string) string {
