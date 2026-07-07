@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 	"time"
 
@@ -144,5 +145,32 @@ func TestBuildInstitutionalAddresseeLabelUsesUppercaseBrand(t *testing.T) {
 
 	if got != "ENCONTRE AQUI IMÓVEIS LTDA" {
 		t.Fatalf("expected addressee label to be uppercase, got %q", got)
+	}
+}
+
+func TestBuildProposalTitleUsesRentForRentalProposals(t *testing.T) {
+	req := domain.ProposalRequest{
+		DealType: "rent",
+	}
+
+	got := buildProposalTitle(req)
+
+	if got != "PROPOSTA DE LOCAÇÃO DE IMÓVEL" {
+		t.Fatalf("expected rent proposal title, got %q", got)
+	}
+}
+
+func TestBuildIntroParagraphUsesRentVocabularyForRentalProposals(t *testing.T) {
+	req := domain.ProposalRequest{
+		DealType: "rent",
+	}
+
+	got := buildIntroParagraph(req, "Rua A, 10", "Rio Verde", "GO")
+
+	if !strings.Contains(got, "oferta de locação") {
+		t.Fatalf("expected rental intro paragraph, got %q", got)
+	}
+	if strings.Contains(got, "oferta de compra") {
+		t.Fatalf("expected rental intro paragraph to avoid purchase wording, got %q", got)
 	}
 }
