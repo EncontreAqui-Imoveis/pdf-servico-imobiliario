@@ -174,3 +174,68 @@ func TestBuildIntroParagraphUsesRentVocabularyForRentalProposals(t *testing.T) {
 		t.Fatalf("expected rental intro paragraph to avoid purchase wording, got %q", got)
 	}
 }
+
+func TestBuildRentalProposalTermsUsesOnlyRentalVocabulary(t *testing.T) {
+	lines := buildRentalProposalTerms(domain.RentalTerms{
+		MonthlyRent:               2500,
+		GuaranteeType:             "Seguro-fiança",
+		GuaranteeAmount:           2500,
+		LeaseTermMonths:           30,
+		ExpectedStartDate:         "2026-08-01",
+		MonthlyDueDay:             10,
+		CondominiumResponsibility: "Locatário",
+		PropertyTaxResponsibility: "Locador",
+		Observations:              "Sem animais.",
+	})
+	joined := strings.Join(lines, "\n")
+
+	for _, expected := range []string{
+		"Valor mensal do aluguel: R$ 2.500,00",
+		"Garantia locatícia: Seguro-fiança (R$ 2.500,00)",
+		"Prazo de locação: 30 meses",
+		"Início previsto da locação: 01/08/2026",
+		"Vencimento mensal: dia 10",
+		"Responsabilidade pelo condomínio: Locatário",
+		"Responsabilidade pelo IPTU: Locador",
+	} {
+		if !strings.Contains(joined, expected) {
+			t.Fatalf("expected rental terms to contain %q, got %q", expected, joined)
+		}
+	}
+	for _, forbidden := range []string{"Sinal/Entrada", "Financiamento", "Permuta"} {
+		if strings.Contains(joined, forbidden) {
+			t.Fatalf("rental terms must not contain sale term %q: %q", forbidden, joined)
+		}
+	}
+}
+
+func TestGenerateProposalRendersRentalTermsWithoutSaleTerms(t *testing.T) {
+	svc := NewPDFService()
+	req := domain.ProposalRequest{
+		ClientName:      "Ana Silva",
+		ClientCPF:       "123.456.789-00",
+		BrokerName:      "Pedro Souza",
+		DealType:        "rent",
+		PropertyAddress: domain.FlexibleAddress{Raw: "Rua A, 10, Centro, Goiânia, GO"},
+		RentalTerms: domain.RentalTerms{
+			MonthlyRent:     2500,
+			GuaranteeType:   "Caução",
+			LeaseTermMonths: 12,
+		},
+		ValidityDays: 10,
+	}
+
+	pdfBytes, err := svc.GenerateProposal(req)
+	if err != nil {
+		t.Fatalf("expected rental PDF generation, got error: %v", err)
+	}
+	pdfText := string(pdfBytes)
+	if !strings.Contains(pdfText, "Valor mensal do aluguel") {
+		t.Fatalf("expected rental PDF content, got %q", pdfText)
+	}
+	for _, forbidden := range []string{"Sinal/Entrada", "Financiamento", "Permuta"} {
+		if strings.Contains(pdfText, forbidden) {
+			t.Fatalf("rental PDF must not contain sale term %q", forbidden)
+		}
+	}
+}

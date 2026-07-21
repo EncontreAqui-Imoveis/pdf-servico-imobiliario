@@ -35,8 +35,6 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	clientName := req.ResolvedClientName()
 	address, city, state := resolveIntroLocation(req)
 	validityDays := req.ResolvedValidityDays()
-	totalValue := req.ResolvedTotalValue()
-	payment := req.ResolvedPayments()
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(20, 20, 20)
 	pdf.SetAutoPageBreak(true, 20)
@@ -65,21 +63,7 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 	pdf.MultiCell(0, 7, tr(intro), "", "J", false)
 	pdf.Ln(2)
 
-	lines := []string{
-		fmt.Sprintf("• Valor total da proposta: %s", formatBRL(totalValue)),
-		fmt.Sprintf("• Valor em dinheiro (Sinal/Entrada): %s", formatBRL(payment.Cash)),
-	}
-	if payment.TradeIn > 0 {
-		lines = append(lines, fmt.Sprintf("• Permuta: %s", formatBRL(payment.TradeIn)))
-	}
-	if payment.Financing > 0 {
-		lines = append(lines, fmt.Sprintf("• Financiamento: %s", formatBRL(payment.Financing)))
-	}
-	if payment.Others > 0 {
-		lines = append(lines, fmt.Sprintf("• Outros: %s", formatBRL(payment.Others)))
-	}
-
-	for _, line := range lines {
+	for _, line := range buildProposalTerms(req) {
 		pdf.MultiCell(0, 7, tr(line), "", "L", false)
 	}
 
@@ -148,6 +132,70 @@ func (s *PDFService) GenerateProposal(req domain.ProposalRequest) ([]byte, error
 		return nil, err
 	}
 	return out.Bytes(), nil
+}
+
+func buildProposalTerms(req domain.ProposalRequest) []string {
+	if req.ResolvedDealType() == "rent" {
+		return buildRentalProposalTerms(req.ResolvedRentalTerms())
+	}
+	return buildSaleProposalTerms(req.ResolvedTotalValue(), req.ResolvedPayments())
+}
+
+func buildSaleProposalTerms(totalValue float64, payment domain.PaymentValues) []string {
+	lines := []string{
+		fmt.Sprintf("• Valor total da proposta: %s", formatBRL(totalValue)),
+		fmt.Sprintf("• Valor em dinheiro (Sinal/Entrada): %s", formatBRL(payment.Cash)),
+	}
+	if payment.TradeIn > 0 {
+		lines = append(lines, fmt.Sprintf("• Permuta: %s", formatBRL(payment.TradeIn)))
+	}
+	if payment.Financing > 0 {
+		lines = append(lines, fmt.Sprintf("• Financiamento: %s", formatBRL(payment.Financing)))
+	}
+	if payment.Others > 0 {
+		lines = append(lines, fmt.Sprintf("• Outros: %s", formatBRL(payment.Others)))
+	}
+	return lines
+}
+
+func buildRentalProposalTerms(terms domain.RentalTerms) []string {
+	lines := []string{
+		fmt.Sprintf("• Valor mensal do aluguel: %s", formatBRL(terms.MonthlyRent)),
+	}
+	if terms.GuaranteeType != "" {
+		guarantee := fmt.Sprintf("• Garantia locatícia: %s", terms.GuaranteeType)
+		if terms.GuaranteeAmount > 0 {
+			guarantee += fmt.Sprintf(" (%s)", formatBRL(terms.GuaranteeAmount))
+		}
+		lines = append(lines, guarantee)
+	}
+	if terms.LeaseTermMonths > 0 {
+		lines = append(lines, fmt.Sprintf("• Prazo de locação: %d meses", terms.LeaseTermMonths))
+	}
+	if terms.ExpectedStartDate != "" {
+		lines = append(lines, fmt.Sprintf("• Início previsto da locação: %s", formatISODateForDisplay(terms.ExpectedStartDate)))
+	}
+	if terms.MonthlyDueDay > 0 {
+		lines = append(lines, fmt.Sprintf("• Vencimento mensal: dia %d", terms.MonthlyDueDay))
+	}
+	if terms.CondominiumResponsibility != "" {
+		lines = append(lines, fmt.Sprintf("• Responsabilidade pelo condomínio: %s", terms.CondominiumResponsibility))
+	}
+	if terms.PropertyTaxResponsibility != "" {
+		lines = append(lines, fmt.Sprintf("• Responsabilidade pelo IPTU: %s", terms.PropertyTaxResponsibility))
+	}
+	if terms.Observations != "" {
+		lines = append(lines, fmt.Sprintf("• Observações: %s", terms.Observations))
+	}
+	return lines
+}
+
+func formatISODateForDisplay(value string) string {
+	parts := strings.Split(strings.TrimSpace(value), "-")
+	if len(parts) == 3 && len(parts[0]) == 4 && len(parts[1]) == 2 && len(parts[2]) == 2 {
+		return fmt.Sprintf("%s/%s/%s", parts[2], parts[1], parts[0])
+	}
+	return value
 }
 
 func formatBRL(value float64) string {

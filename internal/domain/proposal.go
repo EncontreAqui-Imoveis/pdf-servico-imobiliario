@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 )
 
@@ -82,6 +83,21 @@ type PaymentValues struct {
 	Others    float64
 }
 
+// RentalTerms carries commercial conditions that are specific to a lease.
+// It intentionally has no party identity fields; those remain in the proposal
+// and contract services, where authorization is enforced.
+type RentalTerms struct {
+	MonthlyRent               float64 `json:"monthly_rent"`
+	GuaranteeType             string  `json:"guarantee_type"`
+	GuaranteeAmount           float64 `json:"guarantee_amount"`
+	LeaseTermMonths           int     `json:"lease_term_months"`
+	ExpectedStartDate         string  `json:"expected_start_date"`
+	MonthlyDueDay             int     `json:"monthly_due_day"`
+	CondominiumResponsibility string  `json:"condominium_responsibility"`
+	PropertyTaxResponsibility string  `json:"property_tax_responsibility"`
+	Observations              string  `json:"observations"`
+}
+
 type ProposalRequest struct {
 	ClientNameLegacy      string  `json:"client_name"`
 	ClientCPFLegacy       string  `json:"client_cpf"`
@@ -92,14 +108,16 @@ type ProposalRequest struct {
 	PaymentMethodLegacy   string  `json:"payment_method"`
 	ValidityDaysLegacy    int     `json:"validity_days"`
 
-	ClientName      string           `json:"clientName"`
-	ClientCPF       string           `json:"clientCpf"`
-	PropertyAddress FlexibleAddress  `json:"propertyAddress"`
-	BrokerName      string           `json:"brokerName"`
-	DealType        string           `json:"dealType"`
-	TotalValue      float64          `json:"totalValue"`
-	Payment         PaymentBreakdown `json:"payment"`
-	ValidityDays    int              `json:"validadeDias"`
+	ClientName       string           `json:"clientName"`
+	ClientCPF        string           `json:"clientCpf"`
+	PropertyAddress  FlexibleAddress  `json:"propertyAddress"`
+	BrokerName       string           `json:"brokerName"`
+	DealType         string           `json:"dealType"`
+	TotalValue       float64          `json:"totalValue"`
+	Payment          PaymentBreakdown `json:"payment"`
+	ValidityDays     int              `json:"validadeDias"`
+	RentalTerms      RentalTerms      `json:"rental_terms"`
+	RentalTermsCamel RentalTerms      `json:"rentalTerms"`
 
 	PropertyCity  string `json:"propertyCity"`
 	PropertyState string `json:"propertyState"`
@@ -139,6 +157,21 @@ func (p *ProposalRequest) Validate() error {
 	if err := validateMaxLength("payment_method", p.PaymentMethodLegacy, maxPaymentMethodLength); err != nil {
 		return err
 	}
+	for _, field := range []struct {
+		name  string
+		value string
+		limit int
+	}{
+		{"rental_terms.guarantee_type", p.ResolvedRentalTerms().GuaranteeType, 80},
+		{"rental_terms.expected_start_date", p.ResolvedRentalTerms().ExpectedStartDate, 10},
+		{"rental_terms.condominium_responsibility", p.ResolvedRentalTerms().CondominiumResponsibility, 80},
+		{"rental_terms.property_tax_responsibility", p.ResolvedRentalTerms().PropertyTaxResponsibility, 80},
+		{"rental_terms.observations", p.ResolvedRentalTerms().Observations, 1000},
+	} {
+		if err := validateMaxLength(field.name, field.value, field.limit); err != nil {
+			return err
+		}
+	}
 
 	if strings.TrimSpace(p.ResolvedClientName()) == "" {
 		return errors.New("client_name is required")
@@ -146,13 +179,40 @@ func (p *ProposalRequest) Validate() error {
 	if strings.TrimSpace(p.ResolvedPropertyAddress()) == "" {
 		return errors.New("property_address is required")
 	}
-	total := p.ResolvedTotalValue()
-	if total <= 0 {
-		return errors.New("value must be greater than zero")
-	}
 	validity := p.ResolvedValidityDays()
 	if validity <= 0 {
 		return errors.New("validity_days must be greater than zero")
+	}
+
+	if p.ResolvedDealType() == "rent" {
+		if err := validateRawRentalTerms(p.RentalTerms); err != nil {
+			return err
+		}
+		if err := validateRawRentalTerms(p.RentalTermsCamel); err != nil {
+			return err
+		}
+		terms := p.ResolvedRentalTerms()
+		if terms.MonthlyRent <= 0 {
+			return errors.New("rental_terms.monthly_rent must be greater than zero")
+		}
+		if terms.GuaranteeAmount < 0 {
+			return errors.New("rental_terms.guarantee_amount must not be negative")
+		}
+		if terms.LeaseTermMonths < 0 {
+			return errors.New("rental_terms.lease_term_months must not be negative")
+		}
+		if terms.MonthlyDueDay < 0 || terms.MonthlyDueDay > 31 {
+			return errors.New("rental_terms.monthly_due_day must be between 1 and 31")
+		}
+		if terms.ExpectedStartDate != "" && !isValidISODate(terms.ExpectedStartDate) {
+			return errors.New("rental_terms.expected_start_date must use a valid YYYY-MM-DD date")
+		}
+		return nil
+	}
+
+	total := p.ResolvedTotalValue()
+	if total <= 0 {
+		return errors.New("value must be greater than zero")
 	}
 
 	payments := p.ResolvedPayments()
@@ -166,6 +226,30 @@ func (p *ProposalRequest) Validate() error {
 	}
 
 	return nil
+}
+
+func validateRawRentalTerms(terms RentalTerms) error {
+	if terms.MonthlyRent < 0 {
+		return errors.New("rental_terms.monthly_rent must not be negative")
+	}
+	if terms.GuaranteeAmount < 0 {
+		return errors.New("rental_terms.guarantee_amount must not be negative")
+	}
+	if terms.LeaseTermMonths < 0 {
+		return errors.New("rental_terms.lease_term_months must not be negative")
+	}
+	if terms.MonthlyDueDay < 0 || terms.MonthlyDueDay > 31 {
+		return errors.New("rental_terms.monthly_due_day must be between 1 and 31")
+	}
+	return nil
+}
+
+func isValidISODate(value string) bool {
+	if len(value) != len("2006-01-02") {
+		return false
+	}
+	_, err := time.Parse("2006-01-02", value)
+	return err == nil
 }
 
 func (p *ProposalRequest) Sanitize() {
@@ -183,6 +267,16 @@ func (p *ProposalRequest) Sanitize() {
 	p.PropertyState = strings.ToUpper(sanitizeText(p.PropertyState))
 	p.DealTypeLegacy = sanitizeText(p.DealTypeLegacy)
 	p.DealType = sanitizeText(p.DealType)
+	p.RentalTerms.Sanitize()
+	p.RentalTermsCamel.Sanitize()
+}
+
+func (r *RentalTerms) Sanitize() {
+	r.GuaranteeType = sanitizeText(r.GuaranteeType)
+	r.ExpectedStartDate = sanitizeText(r.ExpectedStartDate)
+	r.CondominiumResponsibility = sanitizeText(r.CondominiumResponsibility)
+	r.PropertyTaxResponsibility = sanitizeText(r.PropertyTaxResponsibility)
+	r.Observations = sanitizeText(r.Observations)
 }
 
 func (a *FlexibleAddress) Sanitize() {
@@ -230,6 +324,11 @@ func (p *ProposalRequest) ResolvedValidityDays() int {
 }
 
 func (p *ProposalRequest) ResolvedTotalValue() float64 {
+	if p.ResolvedDealType() == "rent" {
+		if monthlyRent := p.ResolvedRentalTerms().MonthlyRent; monthlyRent > 0 {
+			return monthlyRent
+		}
+	}
 	if p.TotalValue > 0 {
 		return p.TotalValue
 	}
@@ -238,6 +337,23 @@ func (p *ProposalRequest) ResolvedTotalValue() float64 {
 	}
 	payments := p.ResolvedPayments()
 	return payments.Cash + payments.TradeIn + payments.Financing + payments.Others
+}
+
+func (p *ProposalRequest) ResolvedRentalTerms() RentalTerms {
+	primary := p.RentalTerms
+	fallback := p.RentalTermsCamel
+
+	return RentalTerms{
+		MonthlyRent:               firstPositive(primary.MonthlyRent, fallback.MonthlyRent, p.TotalValue, p.TotalValueLegacy),
+		GuaranteeType:             firstNonBlank(primary.GuaranteeType, fallback.GuaranteeType),
+		GuaranteeAmount:           firstPositive(primary.GuaranteeAmount, fallback.GuaranteeAmount),
+		LeaseTermMonths:           firstPositiveInteger(primary.LeaseTermMonths, fallback.LeaseTermMonths),
+		ExpectedStartDate:         firstNonBlank(primary.ExpectedStartDate, fallback.ExpectedStartDate),
+		MonthlyDueDay:             firstPositiveInteger(primary.MonthlyDueDay, fallback.MonthlyDueDay),
+		CondominiumResponsibility: firstNonBlank(primary.CondominiumResponsibility, fallback.CondominiumResponsibility),
+		PropertyTaxResponsibility: firstNonBlank(primary.PropertyTaxResponsibility, fallback.PropertyTaxResponsibility),
+		Observations:              firstNonBlank(primary.Observations, fallback.Observations),
+	}
 }
 
 func (p *ProposalRequest) ResolvedPropertyAddress() string {
@@ -318,6 +434,15 @@ func firstNonBlank(values ...string) string {
 }
 
 func firstPositive(values ...float64) float64 {
+	for _, value := range values {
+		if value > 0 {
+			return value
+		}
+	}
+	return 0
+}
+
+func firstPositiveInteger(values ...int) int {
 	for _, value := range values {
 		if value > 0 {
 			return value

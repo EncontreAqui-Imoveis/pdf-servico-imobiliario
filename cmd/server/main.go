@@ -54,6 +54,7 @@ func main() {
 	handler := httptransport.NewHandler(pdfService)
 
 	router.POST("/generate-proposal", handler.GenerateProposal)
+	router.POST("/generate-contract", handler.GenerateContract)
 
 	port := os.Getenv("PORT")
 	if port == "" {

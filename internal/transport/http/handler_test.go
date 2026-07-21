@@ -29,6 +29,15 @@ func (s *stubProposalPDFService) GenerateProposal(
 	return s.response, nil
 }
 
+func (s *stubProposalPDFService) GenerateContract(
+	req domain.ContractRequest,
+) ([]byte, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.response, nil
+}
+
 func TestGenerateProposalRejectsOversizedPayload(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
